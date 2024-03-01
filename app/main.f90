@@ -6,16 +6,23 @@ program main
   implicit none
 
   real(dp), allocatable :: t(:), y(:,:)
-  integer :: nsteps
+  real(dp) :: dt
+  integer :: nsteps, nsteps_out
 
   ! call say_hello()
   
-  nsteps = 10000
+  ! nsteps = 10000000
+  nsteps = 100
+
+  ! nsteps_out = 1000
+  nsteps_out = 1
+
+  dt = 0.0001_dp
 
   allocate(t(nsteps+1))
   allocate(y(18, nsteps+1))
 
-  call run_sim(t, y)
+  call run_sim(t, y, dt, nsteps_out)
   ! call savetxt('t.dat', t)
-  call savetxt('y.dat', y)
+  ! call savetxt('y.dat', transpose(y))
 end program main

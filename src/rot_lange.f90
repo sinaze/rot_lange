@@ -2,14 +2,13 @@ module rot_lange
   use, intrinsic :: iso_fortran_env, only: sp=>real32, dp=>real64
   use, intrinsic :: iso_fortran_env, only: compiler_version, compiler_options
   use stdlib_linalg, only: eye
-  use types, only: t_rigid_body !, t_params
+  use types, only: t_rigid_body
   use ode
   use rigid_body
   use integrate, only: rk_step, func
+  use progressbar, only: progress_bar, remaining_time, progress_bar_time
   implicit none
-  ! private
 
-  public :: say_hello
 contains
 
   subroutine say_hello
@@ -35,15 +34,19 @@ contains
 
   end subroutine say_hello
 
-  ! subroutine run_sim(params)
-  subroutine run_sim(t, y)
-    ! type(t_params), intent(in) :: params
+
+  subroutine run_sim(t, y, dt, nsteps_out)
     real(dp), intent(inout) :: t(:), y(:,:)
-    real(dp) :: m, dt !, t_end
+    real(dp), intent(in) :: dt
+    integer, intent(in) :: nsteps_out
+    real(dp) :: m
     real(dp), dimension(3) :: x0, v0, w0
     real(dp), dimension(3, 3) :: I0, R0
-    integer :: i, nsteps !, nsteps_out
+    integer :: tshape(1)
+    integer :: i, nsteps
     type(t_rigid_body) :: rb
+    integer :: io, stat
+    logical :: exists
 
     m = 1.0_dp
     I0(:, 1) = [0.012_dp, 0.0_dp, 0.0_dp]
@@ -56,28 +59,35 @@ contains
     R0(:, 3) = [0.0_dp, 0.0_dp, 1.0_dp]
     w0 = [0.0_dp, 0.0_dp, 0.0_dp]
 
-    ! dt = params%dt
-    ! t_end = params%t_end
-    ! nsteps = params%nsteps
-    ! nsteps_out = params%nsteps_out
-
-    dt = 0.001_dp
-    ! nsteps = 10000
-
-    ! allocate(t(nsteps+1))
-    ! allocate(y(18, nsteps+1))
+    tshape = shape(t)
+    nsteps = tshape(1) - 1
 
     call init_rigid_body(rb, m, I0, x0, v0, R0, w0, dt)
 
+    inquire(file="out.dat", exist=exists)
+    if (exists) then
+      open(newunit=io, file="out.dat", iostat=stat)
+      if (stat == 0) close(io, status='delete', iostat=stat)
+    end if
+    
+    open(newunit=io, file="out.dat", status="new", action="write")
+
     t(1) = 0.0_dp
     y(:, 1) = state_to_y(rb)
+    write(io, *) t(1), y(4:12, 1), y(16:18, 1)
 
     do i=2, nsteps+1
       call update_force(rb)
       t(i) = t(i-1) + dt
-      y(:, i) = rk_step(func, y(:, i-1), dt)
+      y(:, i) = rk_step(func, y(:, i-1), rb)
       call y_to_state(y(:, i), rb)
+      if (mod(i, nsteps_out) == 0) then
+        write(io, *) t(i), y(4:12, i), y(16:18, i)
+      end if
+      call progress_bar_time(i, nsteps+1)
     end do
+
+    close(io)
   end subroutine
 
 
