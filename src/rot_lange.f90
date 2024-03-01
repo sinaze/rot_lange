@@ -45,7 +45,7 @@ contains
     integer :: tshape(1)
     integer :: i, nsteps
     type(t_rigid_body) :: rb
-    integer :: io, stat
+    integer :: io, io_w, io_p, stat
     logical :: exists
 
     m = 1.0_dp
@@ -76,6 +76,24 @@ contains
     y(:, 1) = state_to_y(rb)
     write(io, *) t(1), y(4:12, 1), y(16:18, 1)
 
+    inquire(file="omega.dat", exist=exists)
+    if (exists) then
+      open(newunit=io_w, file="omega.dat", iostat=stat)
+      if (stat == 0) close(io_w, status='delete', iostat=stat)
+    end if
+    
+    open(newunit=io_w, file="omega.dat", status="new", action="write")
+    write(io_w, *) t(1), rb%angular_velocity
+
+    inquire(file="phi.dat", exist=exists)
+    if (exists) then
+      open(newunit=io_p, file="phi.dat", iostat=stat)
+      if (stat == 0) close(io_p, status='delete', iostat=stat)
+    end if
+    
+    open(newunit=io_p, file="phi.dat", status="new", action="write")
+    write(io_p, *) t(1), rb%angular_displacement
+
     do i=2, nsteps+1
       call update_force(rb)
       t(i) = t(i-1) + dt
@@ -83,6 +101,8 @@ contains
       call y_to_state(y(:, i), rb)
       if (mod(i, nsteps_out) == 0) then
         write(io, *) t(i), y(4:12, i), y(16:18, i)
+        write(io_w, *) t(i), rb%angular_velocity
+        write(io_p, *) t(i), rb%angular_displacement
       end if
       call progress_bar_time(i, nsteps+1)
     end do
