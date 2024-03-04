@@ -35,10 +35,11 @@ contains
   end subroutine say_hello
 
 
-  subroutine run_sim(t, y, dt, nsteps_out)
+  subroutine run_sim(t, y, dt, nsteps_out, filename)
     real(dp), intent(inout) :: t(:), y(:,:)
     real(dp), intent(in) :: dt
     integer, intent(in) :: nsteps_out
+    character(len=*), intent(in) :: filename
     real(dp) :: m
     real(dp), dimension(3) :: x0, v0, w0
     real(dp), dimension(3, 3) :: I0, R0
@@ -47,6 +48,11 @@ contains
     type(t_rigid_body) :: rb
     integer :: io, io_w, io_p, stat
     logical :: exists
+    character(len=100) :: outfile, omegafile, phifile
+
+    outfile = trim(filename) // "_out.dat"
+    omegafile = trim(filename) // "_omega.dat"
+    phifile = trim(filename) // "_phi.dat"
 
     m = 1.0_dp
     I0(:, 1) = [0.012_dp, 0.0_dp, 0.0_dp]
@@ -64,34 +70,34 @@ contains
 
     call init_rigid_body(rb, m, I0, x0, v0, R0, w0, dt)
 
-    inquire(file="out.dat", exist=exists)
+    inquire(file=outfile, exist=exists)
     if (exists) then
-      open(newunit=io, file="out.dat", iostat=stat)
+      open(newunit=io, file=outfile, iostat=stat)
       if (stat == 0) close(io, status='delete', iostat=stat)
     end if
     
-    open(newunit=io, file="out.dat", status="new", action="write")
+    open(newunit=io, file=outfile, status="new", action="write")
 
     t(1) = 0.0_dp
     y(:, 1) = state_to_y(rb)
     write(io, *) t(1), y(4:12, 1), y(16:18, 1)
 
-    inquire(file="omega.dat", exist=exists)
+    inquire(file=omegafile, exist=exists)
     if (exists) then
-      open(newunit=io_w, file="omega.dat", iostat=stat)
+      open(newunit=io_w, file=omegafile, iostat=stat)
       if (stat == 0) close(io_w, status='delete', iostat=stat)
     end if
     
-    open(newunit=io_w, file="omega.dat", status="new", action="write")
+    open(newunit=io_w, file=omegafile, status="new", action="write")
     write(io_w, *) t(1), rb%angular_velocity
 
-    inquire(file="phi.dat", exist=exists)
+    inquire(file=phifile, exist=exists)
     if (exists) then
-      open(newunit=io_p, file="phi.dat", iostat=stat)
+      open(newunit=io_p, file=phifile, iostat=stat)
       if (stat == 0) close(io_p, status='delete', iostat=stat)
     end if
     
-    open(newunit=io_p, file="phi.dat", status="new", action="write")
+    open(newunit=io_p, file=phifile, status="new", action="write")
     write(io_p, *) t(1), rb%angular_displacement
 
     do i=2, nsteps+1
@@ -104,7 +110,7 @@ contains
         write(io_w, *) t(i), rb%angular_velocity
         write(io_p, *) t(i), rb%angular_displacement
       end if
-      call progress_bar_time(i, nsteps+1)
+      ! call progress_bar_time(i, nsteps+1)
     end do
 
     close(io)
