@@ -13,7 +13,7 @@ contains
         real(dp), dimension(3) :: gamma, force, torque
         real(dp) :: k_B, temp
 
-        gamma = [7.69_dp, 18.52_dp, 10.0_dp]
+        gamma = [10.15_dp, 18.84_dp, 7.64_dp]
         k_B = 8.31446261815342e-3_dp
         temp = 300.0_dp
         force = [0.0_dp, 0.0_dp, 0.0_dp]
